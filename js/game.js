@@ -9,21 +9,10 @@
   var LANGS = ['en', 'zh', 'ko', 'ru', 'ja'];
   var GAME_LENGTH = 40;
   var EVENT_EVERY = 5;
-  var PERSONAL_EVERY = 3;
   var STREAK_LENGTH = 3;
   var STREAK_BONUS = 1000;
   var STRATEGIES = { pilot: 8000, partner: 6000, steady: 0, leases: -5000 };
   var ROLE_KEYS = ['ceo', 'marketing', 'finance', 'operations', 'hr', 'sales', 'tech'];
-  // Use adjacent responsibilities if a role has used its usual scenarios in this stage.
-  var RELATED_SCENARIOS = {
-    ceo: [1, 9, 16, 25, 28, 34, 42, 50], // Shop, staffing, investment and expansion.
-    marketing: [13, 48, 50],                 // Loyalty, subscriptions and new products.
-    finance: [6, 16, 26, 42],                // Payment terms, cash and rent.
-    operations: [9, 40, 42, 50],             // Stock, staff capacity and equipment.
-    hr: [9, 16, 40, 43],                     // Shifts, rewards, retraining and remote work.
-    sales: [2, 9, 37, 45],                   // Reaching and keeping customers.
-    tech: [17, 37, 43, 48]                   // Online channels, remote work and subscriptions.
-  };
   var AVATAR_COLOURS = ['#e7b6a3', '#a8cbcc', '#a8cfb7', '#e6c97e', '#bfcee0', '#dfb58c', '#b4d4cc'];
   var RANKS = [ // checked top-down; share = fraction of the best possible decision profit
     { key: 'tycoon', share: 0.75 },
@@ -118,8 +107,8 @@
     return name.trim().split(/\s+/).slice(0, 2).map(function (p) { return p.charAt(0).toUpperCase(); }).join('');
   }
   function avatar(i, name) {
-    var a = el('div', 'avatar', i < 0 ? '★' : initials(name));
-    a.style.background = i < 0 ? '#d7eade' : AVATAR_COLOURS[i % AVATAR_COLOURS.length];
+    var a = el('div', 'avatar', initials(name));
+    a.style.background = AVATAR_COLOURS[i % AVATAR_COLOURS.length];
     return a;
   }
   function fill(text, who) {
@@ -150,24 +139,15 @@
     try {
       var s = JSON.parse(localStorage.getItem(SAVE_KEY));
       if (s && s.version === 2 && Array.isArray(s.order) && Array.isArray(s.members) && Array.isArray(s.history) &&
-          s.order.every(function (id) { return byId[id]; }) && s.events.every(function (id) { return eventById[id]; }) &&
-          (s.leaders === undefined || (Array.isArray(s.leaders) && s.leaders.length === s.order.length &&
-            s.leaders.every(function (idx) { return Number.isInteger(idx) && idx >= -1 && idx < s.members.length; })))) return s;
+          s.order.every(function (id) { return byId[id]; }) && s.events.every(function (id) { return eventById[id]; })) return s;
     } catch (e) { /* ignore */ }
     return null;
   }
   function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch (e) { /* ignore */ } }
 
-  function scenarioLead(sc) {
-    if (state.leaders) return state.leaders[state.turn];
-    // Existing games keep their original role assignments.
-    if (sc.role === 'team') return -1;
-    var idx = state.members.findIndex(function (m) { return m.role === sc.role; });
-    return idx >= 0 ? idx : state.members.findIndex(function (m) { return m.role === 'ceo'; });
-  }
-
-  function leadName(idx) {
-    return idx < 0 ? null : state.members[idx].name;
+  function recordedName(entry) {
+    // Older games may have recorded an individual for a completed decision.
+    return state.members[entry.forIdx]?.name || null;
   }
 
   // ---------- language ----------
@@ -263,6 +243,7 @@
     $('btn-resume').textContent = t(completed ? 'report_reopen' : 'resume_btn');
     $('btn-resume').onclick = function () {
       state = saved;
+      delete state.leaders;
       // Earlier games can have the previous answer saved on the next scenario.
       if (state.streak === undefined) {
         state.streak = 0;
@@ -276,12 +257,9 @@
     var half = Math.ceil(SCENARIOS.length / 2);
     var n = Math.min(GAME_LENGTH, SCENARIOS.length);
     var nEarly = Math.ceil(n / 2);
-    var rotation = shuffle(cfg.members.map(function (_, idx) { return idx; }));
-    var leaders = Array.from({ length: n }, function (_, turn) {
-      return (turn + 1) % PERSONAL_EVERY === 0 ? rotation[Math.floor(turn / PERSONAL_EVERY) % rotation.length] : -1;
-    });
-    var order = scheduleScenarios(SCENARIOS.slice(0, half), leaders.slice(0, nEarly), cfg.members)
-      .concat(scheduleScenarios(SCENARIOS.slice(half), leaders.slice(nEarly), cfg.members));
+    var order = shuffle(SCENARIOS.slice(0, half)).slice(0, nEarly)
+      .concat(shuffle(SCENARIOS.slice(half)).slice(0, n - nEarly))
+      .map(function (sc) { return sc.id; });
     var nEvents = Math.floor(n / EVENT_EVERY);
     var evPool = shuffle(EVENTS.map(function (e) { return e.id; }));
     var events = [];
@@ -289,28 +267,11 @@
     state = {
       version: 2,
       biz: cfg.biz, product: cfg.product, members: cfg.members, timer: cfg.timer,
-      order: order, leaders: leaders, events: events, turn: 0, phase: 'scenario', optionOrder: shuffle([0, 1, 2]),
+      order: order, events: events, turn: 0, phase: 'scenario', optionOrder: shuffle([0, 1, 2]),
       profit: 0, history: [], rerollUsed: false, dice: null, selected: null,
       streak: 0, pauseUsed: false, pausedFor: null, timerDeadline: null
     };
     save();
-  }
-
-  function scheduleScenarios(available, leaders, members) {
-    var pool = shuffle(available);
-    // Reserve primary matches first, then related scenarios, before filling team slots.
-    var schedule = leaders.map(function (idx) {
-      if (idx < 0) return null;
-      var match = pool.findIndex(function (sc) { return sc.role === members[idx].role; });
-      return match < 0 ? null : pool.splice(match, 1)[0];
-    });
-    schedule = schedule.map(function (sc, turn) {
-      if (sc || leaders[turn] < 0) return sc;
-      var related = RELATED_SCENARIOS[members[leaders[turn]].role];
-      var match = pool.findIndex(function (sc) { return related.includes(sc.id); });
-      return match < 0 ? pool.pop() : pool.splice(match, 1)[0];
-    });
-    return schedule.map(function (sc) { return (sc || pool.pop()).id; });
   }
 
   // ---------- intro ----------
@@ -319,7 +280,11 @@
     $('intro-product').textContent = t('selling', { product: state.product });
     $('how-1').textContent = t('how_1', { n: state.order.length });
     $('intro-strategy').classList.toggle('hidden', state.order.length !== GAME_LENGTH);
-    var wrap = $('intro-team'); wrap.textContent = '';
+    renderTeamRoster('intro-team');
+  }
+
+  function renderTeamRoster(id) {
+    var wrap = $(id); wrap.textContent = '';
     state.members.forEach(function (m, i) {
       var c = el('div', 'team-card');
       var tx = el('div');
@@ -359,33 +324,16 @@
   function renderScenario(relang) {
     var sc = byId[state.order[state.turn]];
     var tx = scText(sc);
-    var lead = scenarioLead(sc);
-    var name = leadName(lead);
-    var personal = lead >= 0;
-    var badge = $('sc-for'); badge.textContent = '';
-    badge.classList.toggle('personal', personal);
-    var lab = el('div');
-    if (personal) {
-      var role = state.members[lead].role;
-      var assignment = !state.leaders && role !== sc.role ? t('covering', { role: roleName(sc.role) }) : roleName(role);
-      lab.append(el('strong', 'decision-lead-title', t('lead_decision', { name: name })),
-        el('small', null, assignment + ' · ' + t('your_call')));
-    } else {
-      lab.append(el('strong', null, t('team_decision')), el('small', null, t('team_sub')));
-    }
-    var mark = avatar(lead, name || '');
-    mark.setAttribute('aria-hidden', 'true');
-    badge.append(mark, lab);
-    $('sc-title').textContent = fill(tx.title, name);
-    $('sc-text').textContent = fill(tx.text, name);
-    $('sc-hint').textContent = fill(tx.hint, name);
+    $('sc-title').textContent = fill(tx.title, null);
+    $('sc-text').textContent = fill(tx.text, null);
+    $('sc-hint').textContent = fill(tx.hint, null);
     var opts = $('sc-options'); opts.textContent = '';
     state.optionOrder.forEach(function (oi, pos) {
       var selected = state.selected === pos;
       var b = el('button', selected ? 'option selected' : 'option');
       b.type = 'button';
       b.setAttribute('aria-pressed', String(selected));
-      b.append(el('span', 'key', 'ABC'.charAt(pos)), el('span', null, fill(tx.options[oi].text, name)));
+      b.append(el('span', 'key', 'ABC'.charAt(pos)), el('span', null, fill(tx.options[oi].text, null)));
       b.onclick = function () { selectOption(pos); };
       opts.appendChild(b);
     });
@@ -484,7 +432,7 @@
     state.profit += opt.amount + bonus;
     state.history.push({
       type: 'scenario', n: state.turn + 1, id: sc.id, opt: oi, letter: 'ABC'.charAt(state.selected),
-      forIdx: scenarioLead(sc), outcome: opt.outcome, amount: opt.amount, streak: streak, bonus: bonus, profit: state.profit
+      forIdx: -1, outcome: opt.outcome, amount: opt.amount, streak: streak, bonus: bonus, profit: state.profit
     });
     state.timerDeadline = null;
     state.phase = 'result';
@@ -494,29 +442,28 @@
 
   function forName(h) {
     if (h.type === 'dice') return t('log_dice');
-    if (h.type === 'hire' || h.type === 'strategy') return t('log_team');
-    return h.forIdx < 0 ? t('log_team') : state.members[h.forIdx].name;
+    return recordedName(h) || t('log_team');
   }
   function histTitle(h) {
     if (h.type === 'dice') return fill(evText(eventById[h.eventId]).title, null);
     if (h.type === 'hire') return hiringText(HIRING[h.n].title, hiringTranslation(h.n).title);
     if (h.type === 'strategy') return t('strategy_title');
     var sc = byId[h.id];
-    return fill(scText(sc).title, leadName(h.forIdx));
+    return fill(scText(sc).title, recordedName(h));
   }
   function histChoice(h) {
     if (h.type === 'dice') return t('log_rolled', { n: h.roll }) + (h.rerolled ? ' ' + t('log_after_reroll') : '');
     if (h.type === 'hire') return HIRING[h.n].candidates[h.candidate].name;
     if (h.type === 'strategy') return t('strategy_' + h.plan + '_title');
     var sc = byId[h.id];
-    return fill(scText(sc).options[h.opt].text, leadName(h.forIdx));
+    return fill(scText(sc).options[h.opt].text, recordedName(h));
   }
 
   function renderResult() {
     var h = state.history[state.history.length - 1];
     var sc = byId[h.id];
     var tx = scText(sc);
-    var name = leadName(h.forIdx);
+    var name = recordedName(h);
     $('rs-choice').textContent = t('you_chose', { letter: h.letter, choice: fill(tx.options[h.opt].text, name) });
     var amt = $('rs-amount');
     amt.textContent = signedMoney(h.amount);
@@ -833,7 +780,7 @@
 
     renderChart();
     renderStats();
-    renderAwards();
+    renderTeamRoster('end-team');
     renderLog();
   }
 
@@ -929,34 +876,6 @@
     if (strategy) {
       box.appendChild(statCard(t('strategy_stat'), signedMoney(strategy.amount), toneClass(strategy.amount), histChoice(strategy)));
     }
-  }
-
-  function renderAwards() {
-    var people = state.members.map(function (m, i) { return { idx: i, name: m.name, role: roleName(m.role), total: 0, n: 0, wins: 0 }; });
-    var team = { idx: -1, name: t('whole_team'), role: t('group_decisions'), total: 0, n: 0, wins: 0 };
-    state.history.forEach(function (h) {
-      if (h.type !== 'scenario') return;
-      var p = h.forIdx < 0 ? team : people[h.forIdx];
-      p.total += h.amount; p.n++; if (h.outcome === 'gain') p.wins++;
-    });
-    var ranked = people.filter(function (p) { return p.n > 0; });
-    var mvp = ranked.slice().sort(function (a, b) { return b.total - a.total; })[0];
-    var sharp = ranked.filter(function (p) { return p.n >= 3; }).sort(function (a, b) { return b.wins / b.n - a.wins / a.n; })[0];
-    var box = $('end-awards'); box.textContent = '';
-    people.concat([team]).forEach(function (p) {
-      var isMvp = p === mvp && people.length > 1 && p.total > 0;
-      var c = el('div', 'award' + (isMvp ? ' mvp' : ''));
-      if (isMvp) c.appendChild(el('div', 'trophy', t('award_mvp')));
-      else if (p === sharp && people.length > 1 && p.wins > 0) c.appendChild(el('div', 'trophy', t('award_sharp')));
-      var head = el('div', 'team-card');
-      head.style.cssText = 'background:none;border:none;padding:0;margin:6px 0';
-      var tx = el('div'); tx.append(el('div', 'who', p.name), el('div', 'role', p.role));
-      head.append(avatar(p.idx, p.name), tx);
-      c.appendChild(head);
-      c.appendChild(el('div', 'value ' + toneClass(p.total), signedMoney(p.total)));
-      c.appendChild(el('p', 'hint', p.n ? t('award_note', { n: p.n, w: p.wins, p: Math.round(p.wins / p.n * 100) }) : t('award_none')));
-      box.appendChild(c);
-    });
   }
 
   function renderLog() {

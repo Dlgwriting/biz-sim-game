@@ -152,15 +152,8 @@ input:focus, select:focus { outline: 2px solid var(--primary); border-color: tra
 
 /* Scenario */
 .for-badge { display: inline-flex; align-items: center; gap: 10px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 999px; padding: 6px 16px 6px 6px; margin-bottom: 16px; font-weight: 600; }
-.for-badge .avatar { width: 34px; height: 34px; font-size: .9rem; }
+.for-badge .avatar { width: 34px; height: 34px; font-size: .9rem; background: #d7eade; }
 .for-badge small { display: block; color: var(--muted); font-weight: 400; }
-.for-badge.personal {
-  display: flex; padding: 14px 16px; gap: 14px;
-  border: 1px solid #d9b867; border-inline-start: 5px solid #a76522;
-  border-radius: 12px; background: #faf0db;
-}
-.for-badge.personal .avatar { width: 44px; height: 44px; font-size: 1.05rem; }
-.decision-lead-title { display: block; font-size: clamp(1.25rem, 3vw, 1.65rem); line-height: 1.2; overflow-wrap: anywhere; }
 .sc-text { font-size: 1.2rem; margin-bottom: 20px; }
 .options { display: flex; flex-direction: column; gap: 12px; }
 .option {
@@ -319,10 +312,6 @@ input:focus, select:focus { outline: 2px solid var(--primary); border-color: tra
 .recap { margin-top: 24px; }
 .recap .grid-3 { margin: 0 0 12px; }
 .recap p { overflow-wrap: anywhere; }
-.awards { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
-.award { background: var(--panel-2); border: 1px solid var(--border); border-radius: 14px; padding: 14px; }
-.award.mvp { border-color: var(--neutral); background: var(--amber); }
-.award .trophy { font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; color: var(--neutral); font-weight: 700; }
 .log { margin-top: 24px; }
 .log summary { cursor: pointer; font-weight: 600; }
 .log-scroll { overflow-x: auto; }
@@ -426,7 +415,7 @@ input:focus, select:focus { outline: 2px solid var(--primary); border-color: tra
   body { background: #fff; color: #000; }
   .panel { background: #fff; box-shadow: none; border: none; backdrop-filter: none; }
   .no-print, .screen:not(#screen-end) { display: none !important; }
-  .rung, .stat-card, .award, .final-profit, .chart svg { background: #f1f5f9; color: #000; }
+  .rung, .stat-card, .team-card, .final-profit, .chart svg { background: #f1f5f9; color: #000; }
   .results-summary, .results-summary .eyebrow, .results-summary .subtitle, .results-summary .label, .results-summary .value, .rank { color: #000; background: #fff; }
   .log[open] table, .log table { display: table; }
   .muted, .label, .subtitle, .recap .stat-card p, .log-bonus { color: #333; }

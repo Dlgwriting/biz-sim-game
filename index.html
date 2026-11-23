@@ -118,7 +118,10 @@
     <!-- Scenario -->
     <div id="view-scenario" class="view">
       <div class="panel card">
-        <div id="sc-for" class="for-badge" role="status"></div>
+        <div id="sc-for" class="for-badge">
+          <span class="avatar" aria-hidden="true">★</span>
+          <div><strong data-i18n="team_decision"></strong><small data-i18n="team_sub"></small></div>
+        </div>
         <h2 id="sc-title"></h2>
         <p id="sc-text" class="sc-text"></p>
         <div id="timer" class="timer hidden"><div id="timer-bar" class="timer-bar"></div><span id="timer-text"></span></div>
@@ -294,8 +297,8 @@
 
       <div class="grid-3" id="end-stats"></div>
 
-      <h3 class="section-title" data-i18n="awards_title"></h3>
-      <div id="end-awards" class="awards"></div>
+      <h3 class="section-title" data-i18n="team_title"></h3>
+      <div id="end-team" class="team-cards"></div>
 
       <details class="log">
         <summary data-i18n="log_summary"></summary>
