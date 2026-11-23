@@ -9,10 +9,21 @@
   var LANGS = ['en', 'zh', 'ko', 'ru', 'ja'];
   var GAME_LENGTH = 40;
   var EVENT_EVERY = 5;
+  var PERSONAL_EVERY = 3;
   var STREAK_LENGTH = 3;
   var STREAK_BONUS = 1000;
   var STRATEGIES = { pilot: 8000, partner: 6000, steady: 0, leases: -5000 };
   var ROLE_KEYS = ['ceo', 'marketing', 'finance', 'operations', 'hr', 'sales', 'tech'];
+  // Use adjacent responsibilities if a role has used its usual scenarios in this stage.
+  var RELATED_SCENARIOS = {
+    ceo: [1, 9, 16, 25, 28, 34, 42, 50], // Shop, staffing, investment and expansion.
+    marketing: [13, 48, 50],                 // Loyalty, subscriptions and new products.
+    finance: [6, 16, 26, 42],                // Payment terms, cash and rent.
+    operations: [9, 40, 42, 50],             // Stock, staff capacity and equipment.
+    hr: [9, 16, 40, 43],                     // Shifts, rewards, retraining and remote work.
+    sales: [2, 9, 37, 45],                   // Reaching and keeping customers.
+    tech: [17, 37, 43, 48]                   // Online channels, remote work and subscriptions.
+  };
   var AVATAR_COLOURS = ['#e7b6a3', '#a8cbcc', '#a8cfb7', '#e6c97e', '#bfcee0', '#dfb58c', '#b4d4cc'];
   var RANKS = [ // checked top-down; share = fraction of the best possible decision profit
     { key: 'tycoon', share: 0.75 },
@@ -113,7 +124,8 @@
   }
   function fill(text, who) {
     var name = who === null ? t('everyone') : String(who).trim().split(/\s+/)[0]; // first name reads naturally
-    var out = String(text)
+    var template = who === null ? String(text).replace(/\{name\}(?:さん| ?님)/g, '{name}') : String(text);
+    var out = template
       .split('{biz}').join(state.biz)
       .split('{product}').join(state.product)
       .split('{name}').join(name);
@@ -138,24 +150,24 @@
     try {
       var s = JSON.parse(localStorage.getItem(SAVE_KEY));
       if (s && s.version === 2 && Array.isArray(s.order) && Array.isArray(s.members) && Array.isArray(s.history) &&
-          s.order.every(function (id) { return byId[id]; }) && s.events.every(function (id) { return eventById[id]; })) return s;
+          s.order.every(function (id) { return byId[id]; }) && s.events.every(function (id) { return eventById[id]; }) &&
+          (s.leaders === undefined || (Array.isArray(s.leaders) && s.leaders.length === s.order.length &&
+            s.leaders.every(function (idx) { return Number.isInteger(idx) && idx >= -1 && idx < s.members.length; })))) return s;
     } catch (e) { /* ignore */ }
     return null;
   }
   function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch (e) { /* ignore */ } }
 
-  // Who a scenario is addressed to: the role holder, else the CEO covering.
-  function addressee(sc) {
-    if (sc.role === 'team') return { idx: -1, name: null, label: t('team_decision'), sub: t('team_sub') };
+  function scenarioLead(sc) {
+    if (state.leaders) return state.leaders[state.turn];
+    // Existing games keep their original role assignments.
+    if (sc.role === 'team') return -1;
     var idx = state.members.findIndex(function (m) { return m.role === sc.role; });
-    var covering = false;
-    if (idx < 0) { idx = state.members.findIndex(function (m) { return m.role === 'ceo'; }); covering = true; }
-    var m = state.members[idx];
-    return {
-      idx: idx, name: m.name,
-      label: m.name + ' · ' + roleName(m.role),
-      sub: covering ? t('covering', { role: roleName(sc.role) }) : t('your_call')
-    };
+    return idx >= 0 ? idx : state.members.findIndex(function (m) { return m.role === 'ceo'; });
+  }
+
+  function leadName(idx) {
+    return idx < 0 ? null : state.members[idx].name;
   }
 
   // ---------- language ----------
@@ -262,11 +274,14 @@
 
   function newGame(cfg) {
     var half = Math.ceil(SCENARIOS.length / 2);
-    var early = SCENARIOS.slice(0, half).map(function (s) { return s.id; });
-    var late = SCENARIOS.slice(half).map(function (s) { return s.id; });
     var n = Math.min(GAME_LENGTH, SCENARIOS.length);
     var nEarly = Math.ceil(n / 2);
-    var order = shuffle(early).slice(0, nEarly).concat(shuffle(late).slice(0, n - nEarly));
+    var rotation = shuffle(cfg.members.map(function (_, idx) { return idx; }));
+    var leaders = Array.from({ length: n }, function (_, turn) {
+      return (turn + 1) % PERSONAL_EVERY === 0 ? rotation[Math.floor(turn / PERSONAL_EVERY) % rotation.length] : -1;
+    });
+    var order = scheduleScenarios(SCENARIOS.slice(0, half), leaders.slice(0, nEarly), cfg.members)
+      .concat(scheduleScenarios(SCENARIOS.slice(half), leaders.slice(nEarly), cfg.members));
     var nEvents = Math.floor(n / EVENT_EVERY);
     var evPool = shuffle(EVENTS.map(function (e) { return e.id; }));
     var events = [];
@@ -274,11 +289,28 @@
     state = {
       version: 2,
       biz: cfg.biz, product: cfg.product, members: cfg.members, timer: cfg.timer,
-      order: order, events: events, turn: 0, phase: 'scenario', optionOrder: shuffle([0, 1, 2]),
+      order: order, leaders: leaders, events: events, turn: 0, phase: 'scenario', optionOrder: shuffle([0, 1, 2]),
       profit: 0, history: [], rerollUsed: false, dice: null, selected: null,
       streak: 0, pauseUsed: false, pausedFor: null, timerDeadline: null
     };
     save();
+  }
+
+  function scheduleScenarios(available, leaders, members) {
+    var pool = shuffle(available);
+    // Reserve primary matches first, then related scenarios, before filling team slots.
+    var schedule = leaders.map(function (idx) {
+      if (idx < 0) return null;
+      var match = pool.findIndex(function (sc) { return sc.role === members[idx].role; });
+      return match < 0 ? null : pool.splice(match, 1)[0];
+    });
+    schedule = schedule.map(function (sc, turn) {
+      if (sc || leaders[turn] < 0) return sc;
+      var related = RELATED_SCENARIOS[members[leaders[turn]].role];
+      var match = pool.findIndex(function (sc) { return related.includes(sc.id); });
+      return match < 0 ? pool.pop() : pool.splice(match, 1)[0];
+    });
+    return schedule.map(function (sc) { return (sc || pool.pop()).id; });
   }
 
   // ---------- intro ----------
@@ -327,21 +359,33 @@
   function renderScenario(relang) {
     var sc = byId[state.order[state.turn]];
     var tx = scText(sc);
-    var who = addressee(sc);
+    var lead = scenarioLead(sc);
+    var name = leadName(lead);
+    var personal = lead >= 0;
     var badge = $('sc-for'); badge.textContent = '';
+    badge.classList.toggle('personal', personal);
     var lab = el('div');
-    lab.append(el('div', null, who.label), el('small', null, who.sub));
-    badge.append(avatar(who.idx, who.name || ''), lab);
-    $('sc-title').textContent = fill(tx.title, who.name);
-    $('sc-text').textContent = fill(tx.text, who.name);
-    $('sc-hint').textContent = fill(tx.hint, who.name);
+    if (personal) {
+      var role = state.members[lead].role;
+      var assignment = !state.leaders && role !== sc.role ? t('covering', { role: roleName(sc.role) }) : roleName(role);
+      lab.append(el('strong', 'decision-lead-title', t('lead_decision', { name: name })),
+        el('small', null, assignment + ' · ' + t('your_call')));
+    } else {
+      lab.append(el('strong', null, t('team_decision')), el('small', null, t('team_sub')));
+    }
+    var mark = avatar(lead, name || '');
+    mark.setAttribute('aria-hidden', 'true');
+    badge.append(mark, lab);
+    $('sc-title').textContent = fill(tx.title, name);
+    $('sc-text').textContent = fill(tx.text, name);
+    $('sc-hint').textContent = fill(tx.hint, name);
     var opts = $('sc-options'); opts.textContent = '';
     state.optionOrder.forEach(function (oi, pos) {
       var selected = state.selected === pos;
       var b = el('button', selected ? 'option selected' : 'option');
       b.type = 'button';
       b.setAttribute('aria-pressed', String(selected));
-      b.append(el('span', 'key', 'ABC'.charAt(pos)), el('span', null, fill(tx.options[oi].text, who.name)));
+      b.append(el('span', 'key', 'ABC'.charAt(pos)), el('span', null, fill(tx.options[oi].text, name)));
       b.onclick = function () { selectOption(pos); };
       opts.appendChild(b);
     });
@@ -434,14 +478,13 @@
     var sc = byId[state.order[state.turn]];
     var oi = state.optionOrder[state.selected];
     var opt = sc.options[oi];
-    var who = addressee(sc);
     var streak = opt.outcome === 'gain' ? (state.streak || 0) + 1 : 0;
     var bonus = streak === STREAK_LENGTH ? STREAK_BONUS : 0;
     state.streak = bonus ? 0 : streak;
     state.profit += opt.amount + bonus;
     state.history.push({
       type: 'scenario', n: state.turn + 1, id: sc.id, opt: oi, letter: 'ABC'.charAt(state.selected),
-      forIdx: who.idx, outcome: opt.outcome, amount: opt.amount, streak: streak, bonus: bonus, profit: state.profit
+      forIdx: scenarioLead(sc), outcome: opt.outcome, amount: opt.amount, streak: streak, bonus: bonus, profit: state.profit
     });
     state.timerDeadline = null;
     state.phase = 'result';
@@ -459,27 +502,27 @@
     if (h.type === 'hire') return hiringText(HIRING[h.n].title, hiringTranslation(h.n).title);
     if (h.type === 'strategy') return t('strategy_title');
     var sc = byId[h.id];
-    return fill(scText(sc).title, addressee(sc).name);
+    return fill(scText(sc).title, leadName(h.forIdx));
   }
   function histChoice(h) {
     if (h.type === 'dice') return t('log_rolled', { n: h.roll }) + (h.rerolled ? ' ' + t('log_after_reroll') : '');
     if (h.type === 'hire') return HIRING[h.n].candidates[h.candidate].name;
     if (h.type === 'strategy') return t('strategy_' + h.plan + '_title');
     var sc = byId[h.id];
-    return fill(scText(sc).options[h.opt].text, addressee(sc).name);
+    return fill(scText(sc).options[h.opt].text, leadName(h.forIdx));
   }
 
   function renderResult() {
     var h = state.history[state.history.length - 1];
     var sc = byId[h.id];
     var tx = scText(sc);
-    var who = addressee(sc);
-    $('rs-choice').textContent = t('you_chose', { letter: h.letter, choice: fill(tx.options[h.opt].text, who.name) });
+    var name = leadName(h.forIdx);
+    $('rs-choice').textContent = t('you_chose', { letter: h.letter, choice: fill(tx.options[h.opt].text, name) });
     var amt = $('rs-amount');
     amt.textContent = signedMoney(h.amount);
     amt.className = 'big-amount ' + toneClass(h.amount);
-    $('rs-text').textContent = fill(tx.options[h.opt].result, who.name);
-    $('rs-lesson').textContent = fill(tx.lesson, who.name);
+    $('rs-text').textContent = fill(tx.options[h.opt].result, name);
+    $('rs-lesson').textContent = fill(tx.lesson, name);
     $('rs-celebration').classList.toggle('hidden', h.outcome !== 'gain');
     $('rs-streak').textContent = h.bonus ? t('streak_bonus', { amount: money(h.bonus) }) :
       h.streak ? t('streak_progress', { n: h.streak }) : '';
@@ -488,9 +531,9 @@
       if (oi === h.opt) return;
       var o = tx.options[oi];
       var li = el('li');
-      li.append(el('span', null, 'ABC'.charAt(pos) + ': ' + fill(o.text, who.name) + ' → '),
+      li.append(el('span', null, 'ABC'.charAt(pos) + ': ' + fill(o.text, name) + ' → '),
         el('strong', toneClass(o.amount), signedMoney(o.amount)),
-        el('span', null, ' — ' + fill(o.result, who.name)));
+        el('span', null, ' — ' + fill(o.result, name)));
       ul.appendChild(li);
     });
     var completed = state.turn + 1;
