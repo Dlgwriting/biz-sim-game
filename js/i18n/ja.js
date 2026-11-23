@@ -2,6 +2,12 @@
 (window.I18N = window.I18N || {}).ja = {
   "ui": {
     "language": "言語",
+    "report_download": "PDFをダウンロード",
+    "report_title": "事業のまとめ",
+    "report_reflection": "チームでの振り返り",
+    "report_error": "PDFを作成できませんでした。もう一度お試しください。",
+    "report_saved": "「{biz}」の結果が保存されています。",
+    "report_reopen": "保存した結果を見る",
     "setup_heading": "自分たちのビジネスを始めよう",
     "setup_form_title": "チームを作ろう",
     "strategy_intro": "最後の市場イベントの後、チームで5か年計画を決めます。",

@@ -3,6 +3,12 @@
   var d = (L.ko = L.ko || { ui: {}, scenarios: {}, events: {} });
   Object.assign(d.ui, {
     language: '언어',
+    report_download: 'PDF 다운로드',
+    report_title: '사업 요약',
+    report_reflection: '팀 돌아보기',
+    report_error: 'PDF를 만들 수 없어요. 다시 시도해 주세요.',
+    report_saved: '{biz}의 결과가 저장되어 있어요.',
+    report_reopen: '저장된 결과 보기',
     setup_heading: "나만의 사업 시작하기",
     setup_form_title: "팀 설정",
     strategy_intro: "마지막 시장 이벤트가 끝나면 팀이 함께 5개년 계획을 정해요.",

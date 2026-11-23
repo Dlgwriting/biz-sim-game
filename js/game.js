@@ -243,9 +243,12 @@
   function renderResumeBox() {
     var saved = loadSave();
     var box = $('resume-box');
-    if (!saved || saved.phase === 'end' || activeScreen() !== 'setup') { box.classList.add('hidden'); return; }
+    if (!saved || activeScreen() !== 'setup') { box.classList.add('hidden'); return; }
     box.classList.remove('hidden');
-    $('resume-text').textContent = t('resume_found', { biz: saved.biz, turn: saved.turn + 1, total: saved.order.length });
+    var completed = saved.phase === 'end';
+    $('resume-text').textContent = completed ? t('report_saved', { biz: saved.biz }) :
+      t('resume_found', { biz: saved.biz, turn: saved.turn + 1, total: saved.order.length });
+    $('btn-resume').textContent = t(completed ? 'report_reopen' : 'resume_btn');
     $('btn-resume').onclick = function () {
       state = saved;
       // Earlier games can have the previous answer saved on the next scenario.
@@ -710,10 +713,8 @@
     $('strategy-brief').classList.toggle('hidden', decided);
     if (decided) {
       var entry = state.history[state.history.length - 1];
-      var description = entry.plan === 'pilot' ? (entry.doubled ? 'strategy_doubled' : 'strategy_recovery') :
-        'strategy_' + entry.plan + '_result';
       $('strategy-choice').textContent = histChoice(entry);
-      $('strategy-explanation').textContent = t(description);
+      $('strategy-explanation').textContent = strategyExplanation(entry);
       $('strategy-amount').textContent = signedMoney(entry.amount);
       $('strategy-amount').className = 'big-amount ' + toneClass(entry.amount);
     } else {
@@ -744,6 +745,11 @@
     if (!relang) $(decided ? 'strategy-choice' : 'strategy-title').focus({ preventScroll: true });
   }
 
+  function strategyExplanation(entry) {
+    return t(entry.plan === 'pilot' ? (entry.doubled ? 'strategy_doubled' : 'strategy_recovery') :
+      'strategy_' + entry.plan + '_result');
+  }
+
   function confirmStrategy() {
     if (state.phase !== 'strategy' || !state.finale.plan) return;
     var plan = state.finale.plan;
@@ -760,6 +766,7 @@
   function renderEnd() {
     stopTimer();
     if (activeScreen() !== 'end') show('end');
+    $('report-error').textContent = '';
     $('end-biz').textContent = state.biz;
     var bestPossible = state.order.reduce(function (sum, id) {
       return sum + byId[id].options.reduce(function (m, o) { return Math.max(m, o.amount); }, 0);
@@ -831,7 +838,7 @@
     return c;
   }
 
-  function renderRecap() {
+  function getRecap() {
     var best = null;
     var worst = null;
     var bonusTotal = 0;
@@ -840,13 +847,20 @@
       if (h.amount < 0 && (!worst || h.amount < worst.amount)) worst = h;
       bonusTotal += h.bonus || 0;
     });
+    return { best: best, worst: worst, bonusTotal: bonusTotal };
+  }
+
+  function renderRecap() {
+    var recap = getRecap();
+    var best = recap.best;
+    var worst = recap.worst;
     var box = $('end-recap'); box.textContent = '';
     box.append(
       best ? statCard(t('recap_gain'), signedMoney(best.amount), 'pos', histTitle(best)) :
         statCard(t('recap_gain'), t('recap_no_gain')),
       worst ? statCard(t('recap_loss'), signedMoney(worst.amount), 'neg', histTitle(worst)) :
         statCard(t('recap_loss'), t('recap_no_loss')),
-      statCard(t('recap_bonuses'), money(bonusTotal), toneClass(bonusTotal))
+      statCard(t('recap_bonuses'), money(recap.bonusTotal), toneClass(recap.bonusTotal))
     );
   }
 
@@ -919,6 +933,49 @@
     });
   }
 
+  function downloadReport() {
+    if (!state || state.phase !== 'end') return;
+    $('report-error').textContent = '';
+    var recap = getRecap();
+    var decisions = state.history.filter(function (h) { return h.type === 'scenario'; });
+    var good = decisions.filter(function (h) { return h.outcome === 'gain'; }).length;
+    var strategy = state.history.find(function (h) { return h.type === 'strategy'; });
+    try {
+      window.BizSimReport.download({
+        title: t('report_title'),
+        business: state.biz,
+        product: t('selling', { product: state.product }),
+        rank: $('end-rank').textContent,
+        profitLabel: t('final_profit'),
+        profit: money(state.profit),
+        loss: state.profit < 0,
+        chartTitle: t('chart_title'),
+        chartLegend: t('chart_legend'),
+        history: state.history,
+        formatMoney: money,
+        recapTitle: t('recap_title'),
+        metrics: [
+          { label: t('recap_gain'), value: recap.best ? signedMoney(recap.best.amount) : t('recap_no_gain'),
+            note: recap.best ? histTitle(recap.best) : '', tone: 'gain' },
+          { label: t('recap_loss'), value: recap.worst ? signedMoney(recap.worst.amount) : t('recap_no_loss'),
+            note: recap.worst ? histTitle(recap.worst) : '', tone: 'loss' },
+          { label: t('stat_calls'), value: t('stat_calls_val', { a: good, b: decisions.length }) },
+          { label: t('recap_bonuses'), value: money(recap.bonusTotal) }
+        ],
+        strategy: strategy ? {
+          title: t('strategy_stat'), choice: histChoice(strategy), amount: signedMoney(strategy.amount),
+          outcome: strategyExplanation(strategy)
+        } : null,
+        teamTitle: t('team_title'),
+        team: state.members.map(function (member) { return { name: member.name, role: roleName(member.role) }; }),
+        reflectionTitle: t('report_reflection'),
+        reflection: t('recap_prompt')
+      });
+    } catch {
+      $('report-error').textContent = t('report_error');
+    }
+  }
+
   // ---------- wiring ----------
   function init() {
     try { var saved = localStorage.getItem(LANG_KEY); if (LANGS.indexOf(saved) >= 0) lang = saved; } catch (e) { /* ignore */ }
@@ -953,6 +1010,7 @@
     $('btn-hire-next').onclick = function () { if (state.phase === 'hire-result') advance(); };
     $('btn-strategy').onclick = confirmStrategy;
     $('btn-strategy-end').onclick = function () { if (state.phase === 'strategy-result') advance(); };
+    $('btn-report').onclick = downloadReport;
     $('btn-print').onclick = function () { $('end-log').closest('details').open = true; window.print(); };
     $('btn-restart').onclick = function () {
       if (!confirm(t('confirm_restart'))) return;

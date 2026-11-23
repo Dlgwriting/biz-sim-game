@@ -2,6 +2,12 @@
 (window.I18N = window.I18N || {}).ru = {
   "ui": {
     "language": "Язык",
+    "report_download": "Скачать PDF",
+    "report_title": "Итоги бизнеса",
+    "report_reflection": "Вопрос для команды",
+    "report_error": "Не удалось создать PDF. Попробуйте ещё раз.",
+    "report_saved": "Результаты компании «{biz}» сохранены.",
+    "report_reopen": "Посмотреть сохранённые результаты",
     "setup_heading": "Создайте свой бизнес",
     "setup_form_title": "Соберите команду",
     "strategy_intro": "После последнего события вместе выберите план на пять лет.",

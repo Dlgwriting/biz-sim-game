@@ -6,6 +6,12 @@
   L.en = L.en || { ui: {}, scenarios: {}, events: {} };
   Object.assign(L.en.ui, {
     language: 'Language',
+    report_download: 'Download PDF',
+    report_title: 'Business summary',
+    report_reflection: 'Team reflection',
+    report_error: 'The PDF could not be created. Please try again.',
+    report_saved: 'Saved results for {biz}.',
+    report_reopen: 'View saved results',
     setup_heading: "Build your business",
     setup_form_title: "Set up your team",
     strategy_intro: "After the last market event, agree on a five-year plan as a team.",

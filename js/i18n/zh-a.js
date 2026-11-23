@@ -3,6 +3,12 @@
   var d = (L.zh = L.zh || { ui: {}, scenarios: {}, events: {} });
   Object.assign(d.ui, {
     language: '语言',
+    report_download: '下载 PDF',
+    report_title: '经营总结',
+    report_reflection: '团队反思',
+    report_error: '无法生成 PDF。请重试。',
+    report_saved: '已保存 {biz} 的游戏结果。',
+    report_reopen: '查看已保存的结果',
     setup_heading: "创办你的企业",
     setup_form_title: "组建团队",
     strategy_intro: "最后一次市场事件结束后，全队一起定下五年计划。",
