@@ -1,185 +1,322 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BizSim: The Entrepreneur's Journey</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BizSim Tycoon</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Instrument+Serif&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
 </head>
-
 <body>
-    <div class="app-container">
-        <div class="lang-toggle">
-            <button class="lang-btn active" data-lang="en">EN</button>
-            <button class="lang-btn" data-lang="zh">中文</button>
-            <button class="lang-btn" data-lang="ko">한국어</button>
+<div class="app">
+
+  <header class="masthead no-print">
+    <div class="brand"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>BizSim Tycoon</div>
+    <nav class="lang-toggle" aria-label="Language">
+      <button class="lang-btn" type="button" data-lang="en">EN</button>
+      <button class="lang-btn" type="button" data-lang="zh" lang="zh">中文</button>
+      <button class="lang-btn" type="button" data-lang="ko" lang="ko">한국어</button>
+      <button class="lang-btn" type="button" data-lang="ru" lang="ru">Русский</button>
+      <button class="lang-btn" type="button" data-lang="ja" lang="ja">日本語</button>
+    </nav>
+  </header>
+
+  <!-- ============ SETUP ============ -->
+  <section id="screen-setup" class="screen active">
+    <div class="panel setup-layout">
+      <div class="setup-story">
+        <div class="setup-message">
+          <h1 class="display" data-i18n="setup_heading"></h1>
+          <p class="subtitle" data-i18n="subtitle"></p>
         </div>
-        <!-- Landing Page -->
-        <section id="landing-page" class="screen active">
-            <div class="glass-panel hero-panel">
-                <h1>BizSim <span class="accent">Tycoon</span></h1>
-                <p class="subtitle">Can you build the ultimate business empire?</p>
+        <div class="setup-visual"><img class="setup-photo" src="assets/workshop.webp" alt="" fetchpriority="high"></div>
+      </div>
+      <div class="setup-work">
 
-                <form id="setup-form">
-                    <div class="input-group">
-                        <label for="business-name">Business Name</label>
-                        <input type="text" id="business-name" placeholder="e.g. Quantum Coffee" required>
-                    </div>
-                    <div class="input-group">
-                        <label for="product-type">Main Product</label>
-                        <input type="text" id="product-type" placeholder="e.g. Holographic Sneakers" required>
-                    </div>
-                    <div class="input-group">
-                        <label for="founder-name">Founder Name</label>
-                        <input type="text" id="founder-name" placeholder="Your Name" required>
-                    </div>
-                    <button type="submit" class="btn-primary">Start Your Journey</button>
-                </form>
-            </div>
-        </section>
-
-        <!-- Game Loop -->
-        <!-- Game Loop -->
-        <section id="game-screen" class="screen hidden">
-            <div class="stats-bar">
-                <div class="stat-box">
-                    <span class="label">Profit/Loss</span>
-                    <span id="profit-display" class="value">RM 0</span>
-                </div>
-                <div class="stat-box">
-                    <span class="label">Turn</span>
-                    <span id="turn-display" class="value">1/30</span>
-                </div>
-                <div class="stat-box market-box">
-                    <span class="label">Market</span>
-                    <span id="market-display" class="value">Stable</span>
-                </div>
-            </div>
-
-            <div class="game-content">
-                <!-- Scenario View -->
-                <div id="scenario-container" class="active-view">
-                    <div class="glass-panel scenario-card">
-                        <h2 id="scenario-title">Scenario #1</h2>
-                        <p id="scenario-text">Loading scenario...</p>
-                        <div id="options-container" class="options-grid">
-                            <!-- Options injected here -->
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Dice Roll View -->
-                <div id="dice-container" class="hidden-view">
-                    <div class="glass-panel center-content">
-                        <h2>Monthly Sales Report</h2>
-                        <p>Time to see how the market responds!</p>
-                        <div class="dice-wrapper">
-                            <div id="dice" class="dice">
-                                <div class="face front">1</div>
-                                <div class="face back">6</div>
-                                <div class="face right">3</div>
-                                <div class="face left">4</div>
-                                <div class="face top">5</div>
-                                <div class="face bottom">2</div>
-                            </div>
-                        </div>
-                        <button id="roll-btn" class="btn-primary">Roll for Sales</button>
-                        <div id="sales-result" class="result-text hidden"></div>
-                        <button id="continue-after-dice" class="btn-primary hidden">Continue</button>
-                    </div>
-                </div>
-
-                <!-- Hiring View -->
-                <div id="hiring-container" class="hidden-view">
-                    <div class="hiring-header">
-                        <h2 class="hiring-title">Expand Your Team</h2>
-                        <p class="hiring-subtitle">Choose a new team member to join <span id="biz-name-span"></span></p>
-                    </div>
-                    <div id="hiring-options" class="hiring-grid">
-                        <!-- Hiring cards injected here -->
-                    </div>
-                </div>
-            </div>
-
-            <div class="controls">
-                <button id="shop-btn" class="action-btn secondary-btn">Shop</button>
-            </div>
-        </section>
-
-        <!-- Shop Modal -->
-        <div id="shop-modal" class="modal hidden">
-            <div class="modal-content glass-panel">
-                <div class="modal-header">
-                    <h2>Office Upgrades</h2>
-                    <button id="close-shop-btn" class="close-btn">&times;</button>
-                </div>
-                <div id="shop-items" class="shop-grid">
-                    <!-- Shop items injected here -->
-                </div>
-            </div>
+      <div id="resume-box" class="resume hidden">
+        <p id="resume-text"></p>
+        <div class="row">
+          <button id="btn-resume" class="btn primary" type="button" data-i18n="resume_btn"></button>
+          <button id="btn-discard" class="btn ghost" type="button" data-i18n="discard_btn"></button>
         </div>
-        <!-- End Screen -->
-        <section id="end-screen" class="screen hidden">
-            <div class="glass-panel result-panel">
-                <h2>Game Over!</h2>
-                <h3 id="end-biz-name" class="accent"></h3>
-                <div id="tycoon-rank" class="rank-display"></div>
+      </div>
 
-                <div class="final-score-box">
-                    <span class="label">Final Profit</span>
-                    <span id="final-profit" class="value big-text">RM 0</span>
-                </div>
+      <form id="setup-form" novalidate aria-labelledby="setup-form-title">
+        <h2 id="setup-form-title" data-i18n="setup_form_title"></h2>
+        <div class="grid-2">
+          <label class="field">
+            <span data-i18n="label_biz"></span>
+            <input id="in-biz" type="text" maxlength="40" data-i18n-ph="ph_biz" autocomplete="off">
+          </label>
+          <label class="field">
+            <span data-i18n="label_product"></span>
+            <input id="in-product" type="text" maxlength="40" data-i18n-ph="ph_product" autocomplete="off">
+          </label>
+        </div>
 
-                <div class="feedback-section">
-                    <div class="feedback-item">
-                        <p id="scenario-feedback"></p>
-                    </div>
-                    <div class="feedback-item">
-                        <p id="hiring-feedback"></p>
-                    </div>
-                </div>
+        <h3 class="section-title" data-i18n="team_title"></h3>
+        <p class="hint" data-i18n="team_hint"></p>
+        <div id="team-list" class="team-list"></div>
+        <button id="btn-add-member" class="btn ghost small" type="button" data-i18n="add_member"></button>
 
-                <p id="performance-text" class="hidden">Not bad for a start!</p>
-                <div id="history-list" class="history-scroll">
-                    <!-- History items -->
-                </div>
-                <button id="restart-btn" class="btn-primary">Play Again</button>
-            </div>
-        </section>
+        <h3 class="section-title" data-i18n="settings_title"></h3>
+        <div class="grid-2">
+          <label class="field">
+            <span data-i18n="label_timer"></span>
+            <select id="in-timer">
+              <option value="0" data-i18n="timer_off"></option>
+              <option value="30" data-i18n="timer_n" data-n="30"></option>
+              <option value="60" data-i18n="timer_n" data-n="60"></option>
+              <option value="90" selected data-i18n="timer_n" data-n="90"></option>
+            </select>
+          </label>
+        </div>
+
+        <p id="setup-error" class="error" role="alert"></p>
+        <button class="btn primary big" type="submit" data-i18n="launch"></button>
+      </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ INTRO ============ -->
+  <section id="screen-intro" class="screen">
+    <div class="panel hero">
+      <p class="eyebrow" data-i18n="welcome"></p>
+      <h1 id="intro-biz" class="display accent"></h1>
+      <p id="intro-product" class="subtitle"></p>
+      <div id="intro-team" class="team-cards"></div>
+      <div class="how">
+        <h3 data-i18n="how_title"></h3>
+        <ul>
+          <li id="how-1"></li>
+          <li data-i18n="how_2"></li>
+          <li data-i18n="how_3"></li>
+          <li data-i18n="how_4"></li>
+          <li data-i18n="how_bonus"></li>
+          <li data-i18n="how_hiring"></li>
+          <li id="intro-strategy" data-i18n="strategy_intro"></li>
+        </ul>
+      </div>
+      <button id="btn-begin" class="btn primary big" type="button" data-i18n="open_btn"></button>
+    </div>
+  </section>
+
+  <!-- ============ GAME ============ -->
+  <section id="screen-game" class="screen">
+    <header class="hud">
+      <div class="hud-biz" id="hud-biz"></div>
+      <div class="hud-stat"><span class="label" data-i18n="hud_profit"></span><span id="hud-profit" class="value"></span></div>
+      <div class="hud-stat"><span class="label" data-i18n="hud_decision"></span><span id="hud-turn" class="value"></span></div>
+      <div class="hud-stat"><span class="label" data-i18n="hud_next_event"></span><span id="hud-event" class="value"></span></div>
+      <div class="hud-stat"><span class="label" data-i18n="hud_reroll"></span><span id="hud-reroll" class="value"></span></div>
+    </header>
+    <div class="progress"><div id="progress-bar" class="progress-bar"></div></div>
+
+    <!-- Scenario -->
+    <div id="view-scenario" class="view">
+      <div class="panel card">
+        <div id="sc-for" class="for-badge"></div>
+        <h2 id="sc-title"></h2>
+        <p id="sc-text" class="sc-text"></p>
+        <div id="timer" class="timer hidden"><div id="timer-bar" class="timer-bar"></div><span id="timer-text"></span></div>
+        <div id="sc-options" class="options"></div>
+        <details id="sc-help" class="scenario-help">
+          <summary data-i18n="scenario_help"></summary>
+          <p id="sc-hint"></p>
+        </details>
+        <div id="sc-paused" class="classroom-note hidden" role="status" data-i18n="pause_message"></div>
+        <div class="row end">
+          <button id="btn-pause" class="btn ghost" type="button" aria-controls="sc-paused"></button>
+          <button id="btn-lock" class="btn primary" type="button" disabled data-i18n="lock"></button>
+        </div>
+      </div>
     </div>
 
-    <!-- Roulette Modal -->
-    <div id="roulette-modal" class="modal hidden">
-        <div class="modal-content roulette-content">
-            <h2 id="roulette-title">Market Volatility!</h2>
-            <p id="roulette-desc">The market is unstable! Spin the wheel to test your luck.</p>
-
-            <div class="roulette-wheel-container">
-                <div id="roulette-wheel" class="roulette-wheel">
-                    <!-- Wheel segments will be CSS/JS generated or simple image -->
-                    <div class="wheel-inner"></div>
-                </div>
-                <div id="roulette-marker">▼</div>
-            </div>
-
-            <div class="roulette-bet-area">
-                <button id="bet-red-btn" class="btn-roulette btn-red">Bet Red</button>
-                <button id="bet-black-btn" class="btn-roulette btn-black">Bet Black</button>
-            </div>
-
-            <div id="roulette-result" class="hidden">
-                <p id="roulette-result-text"></p>
-                <button id="roulette-continue-btn" class="btn-primary hidden">Continue</button>
-            </div>
+    <!-- Result -->
+    <div id="view-result" class="view hidden">
+      <div class="panel card center">
+        <p id="rs-choice" class="muted"></p>
+        <div id="rs-amount" class="big-amount"></div>
+        <p id="rs-text" class="rs-text"></p>
+        <div id="rs-celebration" class="celebration hidden" role="status">
+          <span class="celebration-star" aria-hidden="true">★</span>
+          <strong data-i18n="great_choice"></strong>
+          <span id="rs-streak"></span>
         </div>
+        <details id="rs-lesson-details" class="others lesson">
+          <summary data-i18n="lesson_tag"></summary>
+          <p id="rs-lesson"></p>
+        </details>
+        <details class="others">
+          <summary data-i18n="others_summary"></summary>
+          <ul id="rs-others"></ul>
+        </details>
+        <button id="btn-next" class="btn primary big" type="button"></button>
+      </div>
     </div>
 
-    <script src="data.js"></script>
-    <script src="script_v2.js"></script>
+    <!-- Dice event -->
+    <div id="view-dice" class="view hidden">
+      <div class="panel card center">
+        <p class="eyebrow warn" data-i18n="market_event"></p>
+        <h2 id="ev-title"></h2>
+        <p id="ev-text" class="sc-text"></p>
+        <p id="ev-odds" class="hint"></p>
+        <div id="dice-stage" class="dice-stage" aria-hidden="true">
+          <div id="dice-shadow-track" class="dice-track">
+            <div id="dice-shadow" class="dice-shadow"></div>
+            <div id="dice-impact" class="dice-impact"></div>
+          </div>
+          <div class="dice-camera">
+            <div id="dice-track" class="dice-track">
+              <div id="dice" class="dice">
+                <div class="face f1"><i></i></div>
+                <div class="face f2"><i></i><i></i></div>
+                <div class="face f3"><i></i><i></i><i></i></div>
+                <div class="face f4"><i></i><i></i><i></i><i></i></div>
+                <div class="face f5"><i></i><i></i><i></i><i></i><i></i></div>
+                <div class="face f6"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p id="ev-announcement" class="visually-hidden" role="status"></p>
+        <div class="row center-row dice-actions">
+          <button id="btn-roll" class="btn primary big" type="button" data-i18n="roll"></button>
+          <span id="ev-rolling" class="hidden" data-i18n="rolling_dice" aria-hidden="true"></span>
+          <button id="btn-reroll" class="btn ghost hidden" type="button" data-i18n="reroll_btn"></button>
+          <button id="btn-ev-next" class="btn primary hidden" type="button"></button>
+        </div>
+        <div id="ev-result" class="ev-result hidden">
+          <div id="ev-amount" class="big-amount"></div>
+          <p id="ev-outcome"></p>
+        </div>
+        <table class="odds">
+          <caption data-i18n="outcomes_caption"></caption>
+          <tbody id="ev-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="view-hiring" class="view hidden">
+      <section class="panel card" aria-labelledby="hire-title">
+        <p class="eyebrow warn" data-i18n="hire_expanding"></p>
+        <h2 id="hire-title" tabindex="-1"></h2>
+        <div id="hire-choose">
+          <p id="hire-brief" class="sc-text"></p>
+          <p class="hint" data-i18n="hire_compare"></p>
+          <div id="hire-cvs" class="cv-grid"></div>
+          <div class="row end">
+            <button id="btn-hire" class="btn primary" type="button" data-i18n="hire_confirm" disabled></button>
+          </div>
+        </div>
+        <div id="hire-result" class="center hidden">
+          <p id="hire-name" class="muted"></p>
+          <div id="hire-amount" class="big-amount"></div>
+          <p id="hire-explanation" class="rs-text"></p>
+          <button id="btn-hire-next" class="btn primary big" type="button" data-i18n="next_decision"></button>
+        </div>
+      </section>
+    </div>
+
+    <div id="view-strategy" class="view hidden">
+      <section class="panel strategy-panel" aria-labelledby="strategy-title">
+        <header class="strategy-brief">
+          <div class="strategy-context">
+            <p class="eyebrow warn" data-i18n="strategy_eyebrow"></p>
+            <h2 id="strategy-title" class="display" tabindex="-1" data-i18n="strategy_title"></h2>
+            <p id="strategy-brief" data-i18n="strategy_brief"></p>
+          </div>
+          <div class="strategy-visual"><img class="strategy-photo" src="assets/planning.webp" alt="" loading="lazy"></div>
+        </header>
+        <div class="strategy-content">
+          <div id="strategy-choose">
+            <aside class="strategy-discussion">
+              <div>
+                <h3 data-i18n="strategy_discuss"></h3>
+                <p data-i18n="strategy_prompt"></p>
+              </div>
+              <div class="strategy-profit">
+                <span class="label" data-i18n="strategy_current_profit"></span>
+                <strong id="strategy-balance"></strong>
+              </div>
+            </aside>
+            <div id="strategy-options" class="strategy-options" role="group" aria-labelledby="strategy-title"></div>
+            <div class="row end">
+              <button id="btn-strategy" class="btn primary" type="button" disabled data-i18n="strategy_confirm"></button>
+            </div>
+          </div>
+          <div id="strategy-result" class="strategy-outcome hidden">
+            <div>
+              <p class="eyebrow" data-i18n="strategy_outcome"></p>
+              <h3 id="strategy-choice" tabindex="-1"></h3>
+              <p id="strategy-explanation"></p>
+            </div>
+            <strong id="strategy-amount" class="big-amount"></strong>
+            <button id="btn-strategy-end" class="btn primary" type="button" data-i18n="see_results"></button>
+          </div>
+        </div>
+      </section>
+    </div>
+  </section>
+
+  <!-- ============ END ============ -->
+  <section id="screen-end" class="screen">
+    <div class="panel hero">
+      <div class="results-summary">
+        <div>
+          <p class="eyebrow" data-i18n="final_for"></p>
+          <h1 id="end-biz" class="display"></h1>
+          <div id="end-rank" class="rank"></div>
+          <p id="end-rank-desc" class="subtitle"></p>
+        </div>
+        <div class="final-profit"><span class="label" data-i18n="final_profit"></span><span id="end-profit" class="value"></span></div>
+      </div>
+
+      <section class="classroom-note recap" aria-labelledby="recap-title">
+        <h2 id="recap-title" data-i18n="recap_title"></h2>
+        <div id="end-recap" class="grid-3"></div>
+        <p data-i18n="recap_prompt"></p>
+      </section>
+
+      <div id="end-ladder" class="ladder"></div>
+
+      <h3 class="section-title" data-i18n="chart_title"></h3>
+      <div id="end-chart" class="chart"></div>
+
+      <div class="grid-3" id="end-stats"></div>
+
+      <h3 class="section-title" data-i18n="awards_title"></h3>
+      <div id="end-awards" class="awards"></div>
+
+      <details class="log">
+        <summary data-i18n="log_summary"></summary>
+        <div class="log-scroll"><table><thead><tr><th>#</th><th data-i18n="log_decision"></th><th data-i18n="log_for"></th><th data-i18n="log_choice"></th><th data-i18n="log_result"></th></tr></thead><tbody id="end-log"></tbody></table></div>
+      </details>
+
+      <div class="row center-row no-print">
+        <button id="btn-print" class="btn ghost" type="button" data-i18n="print"></button>
+        <button id="btn-restart" class="btn primary" type="button" data-i18n="play_again"></button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script src="js/scenarios-a.js"></script>
+<script src="js/scenarios-b.js"></script>
+<script src="js/dice-events.js"></script>
+<script src="js/hiring.js"></script>
+<script src="js/i18n/en.js"></script>
+<script src="js/i18n/zh-a.js"></script>
+<script src="js/i18n/zh-b.js"></script>
+<script src="js/i18n/ko-a.js"></script>
+<script src="js/i18n/ko-b.js"></script>
+<script src="js/i18n/ru.js"></script>
+<script src="js/i18n/ja.js"></script>
+<script src="js/dice-animation.js"></script>
+<script src="js/game.js"></script>
 </body>
-
 </html>
